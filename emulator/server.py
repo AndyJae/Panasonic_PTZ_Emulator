@@ -15,14 +15,17 @@ from __future__ import annotations
 
 import threading
 import time
+from pathlib import Path
 
 import uvicorn
 from fastapi import FastAPI, Form, Request
-from fastapi.responses import HTMLResponse, PlainTextResponse, RedirectResponse, Response
+from fastapi.responses import FileResponse, HTMLResponse, PlainTextResponse, RedirectResponse, Response
 
 from emulator import dispatch
 from emulator.models import get_registry
 from emulator.state import CameraState
+
+ICON_PATH = Path(__file__).resolve().parent.parent / "images" / "Icon.ico"
 
 MODEL_IDS = get_registry().registered_camera_ids()
 if not MODEL_IDS:
@@ -125,6 +128,7 @@ control_app = FastAPI()
 
 _PAGE = """<!doctype html>
 <html><head><title>Panasonic PTZ Emulator</title>
+<link rel="icon" href="/favicon.ico" type="image/x-icon">
 <style>
 body {{ font-family: sans-serif; max-width: 760px; margin: 2rem auto; padding: 0 1rem; }}
 table {{ border-collapse: collapse; width: 100%; margin-bottom: 1.5rem; }}
@@ -228,6 +232,11 @@ def _render() -> str:
     return _PAGE.format(status_block=status_block, log_state_block=log_state_block)
 
 
+@control_app.get("/favicon.ico", include_in_schema=False)
+async def favicon() -> FileResponse:
+    return FileResponse(ICON_PATH)
+
+
 @control_app.get("/", response_class=HTMLResponse)
 async def index() -> str:
     return _render()
@@ -287,7 +296,21 @@ def main() -> None:
 
     print(f"Panasonic PTZ Emulator UI: http://{args.host}:{args.ui_port}/")
     print(f"Verfuegbare Modelle: {', '.join(MODEL_IDS)}")
-    uvicorn.run(control_app, host=args.host, port=args.ui_port, log_level="warning")
+
+    ui_config = uvicorn.Config(control_app, host=args.host, port=args.ui_port, log_level="warning")
+    ui_server = uvicorn.Server(ui_config)
+    ui_thread = threading.Thread(target=ui_server.run, daemon=True)
+    ui_thread.start()
+
+    def _shutdown() -> None:
+        manager.stop()
+        ui_server.should_exit = True
+        ui_thread.join(timeout=5)
+
+    from emulator import tray
+
+    ui_url = f"http://{args.host}:{args.ui_port}/"
+    tray.run(f"Panasonic PTZ Emulator ({args.host}:{args.ui_port})", ui_url, _shutdown)
 
 
 if __name__ == "__main__":
