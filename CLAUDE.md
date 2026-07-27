@@ -6,9 +6,10 @@ Ein eigenständiges Panasonic-PTZ-Kamera-Emulator-Tool, das von zwei
 unabhängigen Apps als externer Test-Prozess genutzt werden kann, ohne dass
 eine der beiden Apps zur Laufzeit von diesem Repo (oder umgekehrt) abhängt:
 
-- **`C:\smart_reset_work`** (veröffentlicht als `smart-reset-browser`) —
+- **`C:\GitHub\smart_reset_work`** (veröffentlicht als `smart-reset-browser`) —
   Browser-basiertes Reset-/Steuerungs-/NDI-Tool.
-- **`C:\PTZ_Control`** — MIDI-Shading-Controller (Behringer X-Touch
+- **`C:\GitHub\X-Touch_PTZ_Control_Work`** (veröffentlicht als
+  `X-Touch_PTZ_Control`) — MIDI-Shading-Controller (Behringer X-Touch
   Extender) für PTZ-Kameras.
 
 Beide Apps sprechen dasselbe Panasonic-CGI-Protokoll gegen echte Kameras
@@ -56,13 +57,23 @@ zeigt noch auf keinen externen Emulator). Cross-Modell-Gate (Kommando eines
 anderen Modells → `ER1`) nicht separat live verifiziert, nur im Code
 vorhanden.
 
-### Referenzmaterial (`reference/`, `docs/specs/`)
+### Referenzmaterial (`reference/`, `docs/specs/`) — entfernt für die Veröffentlichung
 
-Alles unter `reference/` ist eine **Kopie zum Zeitpunkt des Scaffoldings**
-(2026-07-19), keine lebende Verbindung zu den Quell-Repos — spätere
-Änderungen dort fließen nicht automatisch hierher. Bei Unklarheiten über
-den aktuellen Stand der Quell-Repos: dort nachsehen, nicht von dieser Kopie
-ausgehen.
+**Entfernt (Nutzerauftrag 2026-07-27, Vorbereitung auf ein öffentliches Repo):**
+`reference/` und `docs/specs/` enthielten eine echte interne Kamera-IP
+(`192.168.0.10`, aus der kopierten `smart_reset_work_CLAUDE.md`) sowie sieben
+offizielle, urheberrechtlich geschützte Panasonic/Behringer-Interface-Spec-PDFs
+— beides nicht für ein öffentliches Repo geeignet. Da beide Ordner bereits im
+allerersten Commit (`Scaffold ...`) enthalten waren, reichte ein einfaches
+`git rm` nicht aus (die Dateien wären über die Commit-Historie weiterhin
+abrufbar geblieben) — die gesamte Historie wurde per `git filter-repo --path
+reference --invert-paths --path docs --invert-paths` neu geschrieben und
+force-gepusht, danach `.gitignore` um `reference/`/`docs/` ergänzt. Beide
+Ordner existieren weiterhin lokal (nicht Teil des Repos) unter
+`C:\GitHub\Panasonic_PTZ_Emulator_reference_backup` für die Weiterarbeit auf
+dieser Maschine.
+
+Ursprünglicher Inhalt (jetzt nur noch im lokalen Backup, nicht mehr im Repo):
 
 | Datei/Ordner | Herkunft | Inhalt |
 |---|---|---|
@@ -70,7 +81,7 @@ ausgehen.
 | `reference/ptz_control_emulator.py` | `PTZ_Control/tools/panasonic_emulator.py` | Explizite Pro-Befehl-Behandlung, Gain/Pedestal, `#`-Befehle |
 | `reference/ptz_control_panasonic_aw_driver.py` | `PTZ_Control/drivers/panasonic_aw.py` | Realer Treiber inkl. Notification-Parsing (`_handle_notification`) — Referenz für Gain-/Pedestal-Decodierung |
 | `reference/smart_reset_work_camera_plugins/` | `smart_reset_work/camera_plugins/panasonic/` | `UI_BUTTONS`/`UI_DROPDOWNS`/`RESET_COMMANDS`/`UI_FEATURE_QUERIES` je Modell (19 Dateien inkl. `notify.py`, `transport.py`, `base.py`) |
-| `reference/ptz_control_panasonic_models/` | `PTZ_Control/drivers/panasonic_models/` | `BUTTON_FEATURES` + Gain/Pedestal-Konstanten je Modell (eigenständig gegen PDFs verifiziert, teils abweichend von smart_reset_work — siehe TODO.md) |
+| `reference/ptz_control_panasonic_models/` | `PTZ_Control/drivers/panasonic_models/` | `BUTTON_FEATURES` + Gain/Pedestal-Konstanten je Modell (eigenständig gegen PDFs verifiziert, teils abweichend von smart_reset_work) |
 | `reference/smart_reset_work_CLAUDE.md`, `reference/ptz_control_CLAUDE.md` | jeweiliges Repo | Volltext-Kopie der Quell-Regeln/-Historie, Basis für die Regeln unten |
 | `docs/specs/` | beide Repos (identischer Satz) | Offizielle Panasonic-Interface-Spec-PDFs — Quelle der Wahrheit für jeden Kamerabefehl |
 
