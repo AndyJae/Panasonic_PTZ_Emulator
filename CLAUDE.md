@@ -30,11 +30,31 @@ Ziel dieses Repos: **ein** Emulator-Tool, das:
 4. als einzige Quelle der Wahrheit für "was simuliert dieses Tool" dient —
    beide Apps zeigen künftig auf dieses Repo statt auf ihre eigene Kopie.
 
-**Aktueller Stand:** Scaffolding abgeschlossen (Git-Repo, venv,
-`requirements.txt`, kopiertes Referenzmaterial unter `reference/` und
-`docs/specs/`). Die eigentliche Zusammenführung ist noch nicht begonnen —
-siehe [TODO.md](TODO.md) für den geplanten Ablauf. Bis dahin enthält dieses
-Repo keinen eigenen Emulator-Code, nur Referenzkopien.
+**Aktueller Stand (2026-07-27):** die Zusammenführung ist inzwischen
+weitgehend umgesetzt, nicht mehr nur geplant — `emulator/` enthält einen
+eigenständigen Dispatch (`dispatch.py`), 17 Modellkataloge
+(`emulator/models/*.py`), Zustandsverwaltung (`state.py`),
+Update-Notification-Encoding/-Push (`notify.py`) sowie Control-UI + CGI-Server
+(`server.py`, Einstiegspunkt `main.py`, Tray-Icon `tray.py`) — TODO.md-Schritte
+1–5 und 7 sind laut Commit-Historie (`0a161f9 Implement merged Panasonic PTZ
+CGI emulator (TODO.md steps 1-5, 7)`, danach `186a58c`/`9632171` für
+Einstiegspunkt/Tray-Icon) bereits erledigt, inklusive der in TODO.md Schritt 4
+noch als fehlend geführten ER2/ER3-Simulation und dem automatischen
+Notification-Push bei jeder Set-Änderung (nicht nur beim manuellen
+"simulate"-Knopf). Eigene Testsuite: 43/43 Tests grün (`pytest`, Stand
+2026-07-27). Zusätzlich live gegen den echten `PanasonicAWDriver` aus
+`PTZ_Control` verifiziert (echter HTTP-Roundtrip, kein Mock): Iris-Setzen/
+-Lesen, Gain inkl. ER3-Wertebereichsfehler und Auto/AGC-Zustand, Pedestal,
+Button-Feature-Toggle (`auto_focus`) und Update-Notification-Push kamen
+korrekt beim Treiber an.
+
+**Weiterhin offen (TODO.md Schritt 6, nicht Teil dieses Repos):** weder
+`smart_reset_work` noch `PTZ_Control` sind bisher auf dieses Tool umgestellt
+— beide nutzen weiterhin ihre eigene `tools/panasonic_emulator.py`-Kopie.
+Kein Live-Test gegen `smart_reset_work` durchgeführt (dessen Consumer-Code
+zeigt noch auf keinen externen Emulator). Cross-Modell-Gate (Kommando eines
+anderen Modells → `ER1`) nicht separat live verifiziert, nur im Code
+vorhanden.
 
 ### Referenzmaterial (`reference/`, `docs/specs/`)
 
