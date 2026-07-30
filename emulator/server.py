@@ -143,6 +143,7 @@ select {{ font-size: 1em; }}
 <h1>Panasonic PTZ Emulator</h1>
 {status_block}
 {log_state_block}
+{script}
 </body></html>"""
 
 _STOPPED_BLOCK = """<form method="post" action="/start">
@@ -160,7 +161,7 @@ _STOPPED_BLOCK = """<form method="post" action="/start">
 _RUNNING_BLOCK = """<p>Status: <b>l&auml;uft</b> &mdash; Modell <b>{model_id}</b> auf <code>{host}:{port}</code></p>
 <form method="post" action="/stop"><button type="submit">Server stoppen</button></form>
 <h2>Update-Notification-Listener</h2>
-<p>{listeners}</p>
+<p id="listeners-value">{listeners}</p>
 <form method="post" action="/simulate-change">
 <label>Befehl als externe &Auml;nderung simulieren (z.&nbsp;B. &uuml;ber die Kamera-Web-UI ge&auml;ndert):
 <input type="text" name="command" placeholder="OSA:0D:1" style="width: 220px;">
@@ -173,51 +174,118 @@ _RUNNING_BLOCK = """<p>Status: <b>l&auml;uft</b> &mdash; Modell <b>{model_id}</b
 
 _LOG_STATE_BLOCK = """<h2>Kamera-Zustand</h2>
 <table>
-<tr><td>Iris (hex)</td><td>{iris:03X}</td></tr>
-<tr><td>Auto-Iris</td><td>{auto_iris}</td></tr>
-<tr><td>Gain (hex)</td><td>{gain}</td></tr>
-<tr><td>Pedestal (hex)</td><td>{pedestal}</td></tr>
-<tr><td>ND-Index</td><td>{nd}</td></tr>
-<tr><td>Bars</td><td>{bars}</td></tr>
+<tr><td>Iris (hex)</td><td id="iris-value">{iris}</td></tr>
+<tr><td>Auto-Iris</td><td id="auto-iris-value">{auto_iris}</td></tr>
+<tr><td>Gain (hex)</td><td id="gain-value">{gain}</td></tr>
+<tr><td>Pedestal (hex)</td><td id="pedestal-value">{pedestal}</td></tr>
+<tr><td>ND-Index</td><td id="nd-value">{nd}</td></tr>
+<tr><td>Bars</td><td id="bars-value">{bars}</td></tr>
 </table>
 <h2>Letzte Befehle</h2>
-<table><tr><th>#</th><th>Befehl -&gt; Antwort</th></tr>{log_rows}</table>
-<p><a href="/">Aktualisieren</a></p>"""
+<table><thead><tr><th>#</th><th>Befehl -&gt; Antwort</th></tr></thead><tbody id="log-rows">{log_rows}</tbody></table>
+<p><a href="/">Aktualisieren</a> (aktualisiert sich auch automatisch)</p>"""
+
+_SCRIPT = """<script>
+async function pollState() {
+  const logRows = document.getElementById("log-rows");
+  if (!logRows) return;
+
+  let data;
+  try {
+    const res = await fetch("/state.json");
+    if (!res.ok) return;
+    data = await res.json();
+  } catch (err) {
+    return;
+  }
+  if (!data.running) return;
+
+  const setText = (id, value) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = value;
+  };
+  setText("iris-value", data.iris);
+  setText("auto-iris-value", data.auto_iris);
+  setText("gain-value", data.gain);
+  setText("pedestal-value", data.pedestal);
+  setText("nd-value", data.nd);
+  setText("bars-value", data.bars);
+  setText("listeners-value", data.listeners);
+
+  logRows.innerHTML = "";
+  if (data.log.length === 0) {
+    const row = document.createElement("tr");
+    row.innerHTML = "<td colspan='2'>&mdash;</td>";
+    logRows.appendChild(row);
+  } else {
+    data.log.forEach((entry, i) => {
+      const row = document.createElement("tr");
+      const numCell = document.createElement("td");
+      numCell.textContent = String(i + 1);
+      const entryCell = document.createElement("td");
+      entryCell.textContent = entry;
+      row.appendChild(numCell);
+      row.appendChild(entryCell);
+      logRows.appendChild(row);
+    });
+  }
+}
+setInterval(pollState, 1000);
+</script>"""
+
+
+def _state_snapshot() -> dict:
+    """Aktueller Kamerazustand fuer UI-Rendering und `/state.json` (Grundlage
+    fuer den JS-Live-Poll, siehe _SCRIPT) -- eine gemeinsame Quelle, damit
+    beide Darstellungen nicht auseinanderlaufen."""
+    module = state.module
+    gain_text = (
+        f"{state.gain_data:02X}"
+        if module is not None and getattr(module, "GAIN_MIN_DB", None) is not None
+        else "n/a (Modell hat kein OGU)"
+    )
+    pedestal_text = (
+        f"{state.pedestal_data:0{module.PEDESTAL_DATA_WIDTH}X}"
+        if module is not None and getattr(module, "PEDESTAL_COMMAND", None) is not None
+        else "n/a (Modell hat kein Pedestal-Kommando)"
+    )
+    listeners_text = (
+        ", ".join(f"{host}:{port}" for port, host in state.listeners.items())
+        or "keine registriert"
+    )
+    return {
+        "model_id": state.model_id,
+        "iris": f"{state.iris_data:03X}",
+        "auto_iris": state.auto_iris,
+        "gain": gain_text,
+        "pedestal": pedestal_text,
+        "nd": state.nd_index,
+        "bars": state.bars_on,
+        "listeners": listeners_text,
+        "log": list(reversed(state.log)),
+    }
 
 
 def _render() -> str:
     if manager.running:
-        listeners = (
-            ", ".join(f"{host}:{port}" for port, host in state.listeners.items())
-            or "keine registriert"
-        )
+        snap = _state_snapshot()
         er2_marker = " (aktiv)" if state.force_er2_once else ""
         status_block = _RUNNING_BLOCK.format(
-            model_id=state.model_id, host=manager.host, port=manager.port,
-            listeners=listeners, er2_marker=er2_marker,
+            model_id=snap["model_id"], host=manager.host, port=manager.port,
+            listeners=snap["listeners"], er2_marker=er2_marker,
         )
 
-        module = state.module
-        gain_text = (
-            f"{state.gain_data:02X}"
-            if module is not None and getattr(module, "GAIN_MIN_DB", None) is not None
-            else "n/a (Modell hat kein OGU)"
-        )
-        pedestal_text = (
-            f"{state.pedestal_data:0{module.PEDESTAL_DATA_WIDTH}X}"
-            if module is not None and getattr(module, "PEDESTAL_COMMAND", None) is not None
-            else "n/a (Modell hat kein Pedestal-Kommando)"
-        )
         log_rows = "".join(
             f"<tr><td>{i + 1}</td><td>{entry}</td></tr>"
-            for i, entry in enumerate(reversed(state.log))
+            for i, entry in enumerate(snap["log"])
         ) or "<tr><td colspan='2'>&mdash;</td></tr>"
         log_state_block = _LOG_STATE_BLOCK.format(
-            iris=state.iris_data, auto_iris=state.auto_iris,
-            gain=gain_text, pedestal=pedestal_text,
-            nd=state.nd_index, bars=state.bars_on,
+            iris=snap["iris"], auto_iris=snap["auto_iris"],
+            gain=snap["gain"], pedestal=snap["pedestal"],
+            nd=snap["nd"], bars=snap["bars"],
             log_rows=log_rows,
         )
+        script = _SCRIPT
     else:
         options = "".join(
             f'<option value="{mid}"{" selected" if mid == state.model_id else ""}>{mid}</option>'
@@ -228,8 +296,9 @@ def _render() -> str:
             options=options, port=manager.port or 8081, error=error
         )
         log_state_block = ""
+        script = ""
 
-    return _PAGE.format(status_block=status_block, log_state_block=log_state_block)
+    return _PAGE.format(status_block=status_block, log_state_block=log_state_block, script=script)
 
 
 @control_app.get("/favicon.ico", include_in_schema=False)
@@ -240,6 +309,15 @@ async def favicon() -> FileResponse:
 @control_app.get("/", response_class=HTMLResponse)
 async def index() -> str:
     return _render()
+
+
+@control_app.get("/state.json")
+async def state_json() -> dict:
+    """Wird von _SCRIPT gepollt, um Zustand/Log ohne vollen Seiten-Reload zu
+    aktualisieren."""
+    if not manager.running:
+        return {"running": False}
+    return {"running": True, **_state_snapshot()}
 
 
 @control_app.post("/start")
