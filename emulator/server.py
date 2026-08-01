@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import threading
 import time
+import webbrowser
 from pathlib import Path
 
 import uvicorn
@@ -379,6 +380,13 @@ def main() -> None:
     ui_server = uvicorn.Server(ui_config)
     ui_thread = threading.Thread(target=ui_server.run, daemon=True)
     ui_thread.start()
+
+    def _open_browser() -> None:
+        """Wait briefly for the server to be ready, then open the browser."""
+        time.sleep(1.2)
+        webbrowser.open(f"http://{args.host}:{args.ui_port}/")
+
+    threading.Thread(target=_open_browser, daemon=True).start()
 
     def _shutdown() -> None:
         manager.stop()
