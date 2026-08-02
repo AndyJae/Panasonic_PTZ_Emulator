@@ -99,3 +99,56 @@ def test_force_er2_lever_via_control_ui():
 
     live_again = httpx.get(f"http://127.0.0.1:{cam_port}/cgi-bin/aw_cam", params={"cmd": "QID"})
     assert live_again.text == "OID:AW-UE160"
+
+
+def _real_discovery_request(source_mac: bytes, source_ip: bytes) -> bytes:
+    """Bytegleicher Nachbau eines echten Discovery-Requests (siehe
+    smart_reset_work/smart_reset/discovery.py::_build_discovery_request) --
+    fuer diesen Test bewusst hier dupliziert statt cross-repo importiert
+    (CLAUDE.md Regel 4: keine Laufzeitabhaengigkeit auf eine der beiden
+    Apps; hier nur ein Test-Fixture, kein Emulator-Code)."""
+    return bytes([
+        0x00, 0x01, 0x00, 0x2A, 0x00, 0x0D, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        *source_mac, *source_ip,
+        0x00, 0x00, 0x20, 0x11, 0x1E, 0x11, 0x23, 0x1F, 0x1E, 0x19, 0x13,
+        0x00, 0x00, 0x00, 0x01,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xF0,
+        0x00, 0x26, 0x00, 0x20, 0x00, 0x21, 0x00, 0x22, 0x00, 0x23, 0x00, 0x25, 0x00, 0x28,
+        0x00, 0x40, 0x00, 0x41, 0x00, 0x42, 0x00, 0x44, 0x00, 0xA5, 0x00, 0xA6, 0x00, 0xA7,
+        0x00, 0xA8, 0x00, 0xAD, 0x00, 0xB3, 0x00, 0xB4, 0x00, 0xB7, 0x00, 0xB8,
+        0xFF, 0xFF, 0x12, 0x21,
+    ])
+
+
+def test_udp_discovery_responds_to_real_request_and_stops_with_server():
+    cam_port = 18084
+    control_client.post("/start", data={"model_id": "AW-UE100", "port": cam_port}, follow_redirects=False)
+
+    client_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    client_sock.settimeout(2.0)
+    request = _real_discovery_request(bytes([0x02, 0, 0, 0, 0, 1]), bytes([127, 0, 0, 1]))
+    client_sock.sendto(request, ("127.0.0.1", 10670))
+    data, _addr = client_sock.recvfrom(4096)
+    client_sock.close()
+
+    assert data[:4] == b"\x00\x01\x01\x75"
+    assert b"AW-UE100" in data
+
+    control_client.post("/stop", follow_redirects=False)
+
+    # Nach dem Stop antwortet auf Port 10670 niemand mehr. Windows liefert
+    # dafuer nicht immer einen sauberen Timeout, sondern surfacet die vom
+    # Kernel empfangene ICMP-Port-Unreachable-Rueckmeldung als
+    # ConnectionResetError (WinError 10054) auf dem naechsten recvfrom() --
+    # beides ist gueltige Evidenz fuer "niemand hoert mehr zu", analog zu
+    # ConnectError/ConnectTimeout in test_start_stop_lifecycle_binds_real_port.
+    no_reply_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    no_reply_sock.settimeout(1.0)
+    no_reply_sock.sendto(request, ("127.0.0.1", 10670))
+    try:
+        no_reply_sock.recvfrom(4096)
+        assert False, "expected no reply after stop"
+    except (socket.timeout, ConnectionResetError, OSError):
+        pass
+    finally:
+        no_reply_sock.close()

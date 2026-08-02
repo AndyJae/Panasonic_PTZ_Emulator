@@ -23,6 +23,7 @@ from fastapi import FastAPI, Form, Request
 from fastapi.responses import FileResponse, HTMLResponse, PlainTextResponse, RedirectResponse, Response
 
 from emulator import dispatch
+from emulator.discovery import create_discovery_socket, discovery_responder_loop
 from emulator.models import get_registry
 from emulator.state import CameraState
 
@@ -68,8 +69,8 @@ async def cgi_event(request: Request, connect: str = "", my_port: int = 0, uid: 
 
 
 class ServerManager:
-    """Startet/stoppt den Kamera-CGI-Server (uvicorn) in einem
-    Hintergrund-Thread."""
+    """Startet/stoppt den Kamera-CGI-Server (uvicorn) und den UDP-Discovery-
+    Responder (siehe discovery.py) zusammen, in Hintergrund-Threads."""
 
     def __init__(self) -> None:
         self.server: uvicorn.Server | None = None
@@ -77,6 +78,9 @@ class ServerManager:
         self.host: str = "127.0.0.1"
         self.port: int | None = None
         self.error: str | None = None
+        self.discovery_thread: threading.Thread | None = None
+        self.discovery_stop_event: threading.Event | None = None
+        self.discovery_error: str | None = None
 
     @property
     def running(self) -> bool:
@@ -107,6 +111,31 @@ class ServerManager:
             self.thread = None
             self.server = None
             self.port = None
+            return
+
+        # UDP-Discovery-Responder -- gleicher Lifecycle wie der CGI-Server,
+        # damit der Emulator nur waehrend des tatsaechlichen Laufens per
+        # "Scan Network" auffindbar ist. Bind-Fehlschlag ist nicht fatal
+        # (die Kamera laeuft trotzdem, nur eben nicht per Scan auffindbar) --
+        # aber sichtbar machen statt still zu scheitern (z. B. weil noch ein
+        # anderer Prozess Port 10670 haelt).
+        discovery_sock = create_discovery_socket()
+        if discovery_sock is None:
+            self.discovery_error = (
+                "UDP-Discovery-Port 10670 konnte nicht gebunden werden (belegt?) -- "
+                "Kamera laeuft, ist aber per \"Scan Network\" nicht auffindbar."
+            )
+        else:
+            self.discovery_error = None
+            stop_event = threading.Event()
+            discovery_thread = threading.Thread(
+                target=discovery_responder_loop,
+                args=(discovery_sock, stop_event, host, port, model_id),
+                daemon=True,
+            )
+            self.discovery_stop_event = stop_event
+            discovery_thread.start()
+            self.discovery_thread = discovery_thread
 
     def stop(self) -> None:
         if self.server:
@@ -116,6 +145,13 @@ class ServerManager:
         self.server = None
         self.thread = None
         self.port = None
+
+        if self.discovery_stop_event:
+            self.discovery_stop_event.set()
+        if self.discovery_thread:
+            self.discovery_thread.join(timeout=2)
+        self.discovery_thread = None
+        self.discovery_stop_event = None
 
 
 manager = ServerManager()
@@ -160,6 +196,8 @@ _STOPPED_BLOCK = """<form method="post" action="/start">
 <p>Status: <b>gestoppt</b> &mdash; unter dieser Adresse ist aktuell keine Kamera erreichbar.</p>"""
 
 _RUNNING_BLOCK = """<p>Status: <b>l&auml;uft</b> &mdash; Modell <b>{model_id}</b> auf <code>{host}:{port}</code></p>
+<p>&Uuml;ber "Scan Network" auffindbar (UDP-Discovery-Antwort aktiv, Port 10670). Das eigentliche &Auml;ndern von IP/DHCP wird vom Emulator nicht beantwortet.</p>
+{discovery_error}
 <form method="post" action="/stop"><button type="submit">Server stoppen</button></form>
 <h2>Update-Notification-Listener</h2>
 <p id="listeners-value">{listeners}</p>
@@ -271,9 +309,13 @@ def _render() -> str:
     if manager.running:
         snap = _state_snapshot()
         er2_marker = " (aktiv)" if state.force_er2_once else ""
+        discovery_error = (
+            f'<p class="warn">{manager.discovery_error}</p>' if manager.discovery_error else ""
+        )
         status_block = _RUNNING_BLOCK.format(
             model_id=snap["model_id"], host=manager.host, port=manager.port,
             listeners=snap["listeners"], er2_marker=er2_marker,
+            discovery_error=discovery_error,
         )
 
         log_rows = "".join(

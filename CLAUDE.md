@@ -49,6 +49,52 @@ Notification-Push bei jeder Set-Änderung (nicht nur beim manuellen
 Button-Feature-Toggle (`auto_focus`) und Update-Notification-Push kamen
 korrekt beim Treiber an.
 
+**UDP-Discovery-Antwort ("Easy IP Setup") ergänzt (2026-08-02):** neues
+Modul `emulator/discovery.py` (`build_discovery_response`,
+`discovery_responder_loop`) — der Emulator antwortet jetzt auf UDP-
+Discovery-Requests (Port 10670 → Antwort direkt an den Absender, keine
+feste Response-Portbindung nötig), damit `smart_reset_work`s "Scan
+Network" ihn findet. `ServerManager` in `server.py` startet/stoppt den
+Responder-Thread zusammen mit dem CGI-Server. **1:1-Port aus
+`smart_reset_work/smart_reset/discovery.py`**, wo das Byte-Format in einer
+separaten Session gegen die offiziellen Interface-Spec-PDFs sowie
+unabhängig gegen eine öffentliche Referenzimplementierung verifiziert
+wurde (siehe `discovery.py`'s Docstring hier) — da `docs/specs/` in diesem
+Repo entfernt ist (s. o.), wurde hier keine erneute PDF-Prüfung
+durchgeführt, nur der bereits verifizierte Vertrag übernommen.
+
+Deckt nur die *Lese*-Seite ab (Discovery). Die *Schreib*-Seite (IP setzen/
+DHCP-Reset über den JSON+TLV-Handshake auf Port 10671/10672 + 10669/10670)
+ist **nicht** implementiert — ein "Set IP"-Versuch aus `smart_reset_work`
+gegen diesen Emulator bleibt unbeantwortet (sauberer Fehler, kein Crash).
+Bewusste Scope-Grenze dieser Änderung, keine Lücke.
+
+Getestet: 6 neue Tests (`tests/test_discovery.py` — Paketaufbau isoliert;
+`tests/test_emulator_http.py::test_udp_discovery_responds_to_real_request_and_stops_with_server`
+— echter UDP-Roundtrip mit einem bytegleichen Nachbau eines realen
+Discovery-Requests gegen einen tatsächlich per `ServerManager` gestarteten
+Server, plus Verifikation dass nach `/stop` niemand mehr antwortet).
+Gesamte Suite: 49/49 grün (`pytest`, Stand 2026-08-02).
+
+**Cross-repo live-verifiziert (2026-08-02):** `smart_reset_work`s eigener,
+unveränderter `smart_reset/discovery.py::discover_cameras()`-Client hat
+diesen Emulator (über `ServerManager.start()` gestartet) via echtem
+UDP-Broadcast gefunden und korrekt geparst — Modell, IP, Port, MAC,
+Netmask, Gateway kamen alle richtig an. Kein Mock, zwei echte Prozesse
+über echte Sockets (Test lief zwar im selben Python-Prozess, aber mit
+echten OS-Sockets, nicht in-memory). Direkt reproduziert, was in
+`smart_reset_work`s eigener `CLAUDE.md` als offene Lücke vermerkt war.
+
+**Dabei gefunden und behoben:** ein erster Testlauf schlug fehl, weil ein
+Prozess aus einem vorherigen Testlauf Port 10670 noch belegt hielt — der
+Discovery-Bind-Fehlschlag blieb dabei komplett unsichtbar (Kamera lief,
+`discovery_error` existierte noch nicht, kein Hinweis irgendwo). Deshalb
+`create_discovery_socket()`/`discovery_responder_loop()` getrennt (analog
+zu `smart_reset_work`s eigenem `create_discovery_socket()`/
+`discover_cameras()`-Split) und `ServerManager.discovery_error` ergänzt,
+sichtbar als Warnung in der Control-UI, sobald der Bind fehlschlägt —
+sonst ein rein stiller Fehlerfall gewesen.
+
 **Weiterhin offen (TODO.md Schritt 6, nicht Teil dieses Repos):** weder
 `smart_reset_work` noch `PTZ_Control` sind bisher auf dieses Tool umgestellt
 — beide nutzen weiterhin ihre eigene `tools/panasonic_emulator.py`-Kopie.
