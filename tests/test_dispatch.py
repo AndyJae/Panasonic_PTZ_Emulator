@@ -35,12 +35,6 @@ def test_gain_agc_accepted_unconditionally():
     assert dispatch.handle_command(s, "OGU:80") == "OGU:80"
 
 
-def test_gain_unsupported_model_returns_er1():
-    s = _state("AK-UB300")  # kein GAIN_MIN_DB
-    assert dispatch.handle_command(s, "QGU") == "ER1:QGU"
-    assert dispatch.handle_command(s, "OGU:08") == "ER1:OGU:08"
-
-
 def test_pedestal_set_and_query_roundtrip():
     s = _state("AW-UE160")  # OSJ:0F, -200..200, center 0x800
     assert dispatch.handle_command(s, "OSJ:0F:850") == "OSJ:0F:850"
@@ -60,10 +54,6 @@ def test_pedestal_cross_family_returns_er1():
     assert dispatch.handle_command(s, "OTP:096") == "ER1:OTP:096"
 
 
-def test_ak_ub300_pedestal_own_family():
-    s = _state("AK-UB300")  # OSG:4A, -99..99, center 0x80
-    assert dispatch.handle_command(s, "OSG:4A:82") == "OSG:4A:82"
-    assert dispatch.handle_command(s, "QSG:4A") == "OSG:4A:82"
 
 
 def test_toggle_feature_set_and_query():
@@ -91,8 +81,8 @@ def test_ue160_gamma_toggle_and_gamma_curve_dropdown_dont_collide():
 
 
 def test_cross_model_gate_rejects_unsupported_feature():
-    # knee_auto (OSA:2D:2) existiert bei HE130/HR140/UE100/UE150A/UE160/
-    # AK-UB300, aber nicht bei HE50.
+    # knee_auto (OSA:2D:2) existiert bei HE130/HR140/UE100/UE150A/UE160,
+    # aber nicht bei HE50.
     s = _state("AW-HE50")
     assert dispatch.handle_command(s, "OSA:2D:2") == "ER1:OSA:2D:2"
 

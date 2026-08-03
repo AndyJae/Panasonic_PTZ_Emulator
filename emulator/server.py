@@ -29,7 +29,21 @@ from emulator.state import CameraState
 
 ICON_PATH = Path(__file__).resolve().parent.parent / "images" / "Icon.ico"
 
-MODEL_IDS = get_registry().registered_camera_ids()
+# Anzeige-Reihenfolge im Modell-Dropdown (UI-Belang, nicht Teil der Registry):
+# AW-UE160 zuerst, dann die restliche AW-UE-Serie absteigend, dann die
+# AW-HE-Serie beginnend mit AW-HE145 (ebenfalls absteigend), zuletzt
+# AW-HR140 (eigene Serie). Alles, was hier nicht gelistet ist (z. B. ein
+# künftig neu hinzugefuegtes Modell), wird alphabetisch angehaengt, damit es
+# nie stillschweigend aus dem Dropdown verschwindet.
+_MODEL_ORDER = [
+    "AW-UE160", "AW-UE150A", "AW-UE100", "AW-UE80", "AW-UE70", "AW-UE50", "AW-UE40", "AW-UE30",
+    "AW-HE145", "AW-HE130", "AW-HE120", "AW-HE60", "AW-HE50", "AW-HE42", "AW-HE40",
+    "AW-HR140",
+]
+_registered_ids = get_registry().registered_camera_ids()
+MODEL_IDS = [cid for cid in _MODEL_ORDER if cid in _registered_ids] + [
+    cid for cid in _registered_ids if cid not in _MODEL_ORDER
+]
 if not MODEL_IDS:
     raise SystemExit("Keine Kameramodelle unter emulator/models/ gefunden.")
 

@@ -9,7 +9,7 @@ Jedes Modell-Modul definiert:
     CAMERA_ID: str
     CAMERA_ID_ALIASES: list[str]           (optional)
     DISPLAY_NAME: str
-    GAIN_MIN_DB / GAIN_MAX_DB / GAIN_STEP_DB: int   (optional, fehlt z.B. bei AK-UB300)
+    GAIN_MIN_DB / GAIN_MAX_DB / GAIN_STEP_DB: int   (optional)
     PEDESTAL_COMMAND / PEDESTAL_QUERY_COMMAND: str  (optional)
     PEDESTAL_MIN / PEDESTAL_MAX / PEDESTAL_CENTER_DATA / PEDESTAL_SCALE / PEDESTAL_DATA_WIDTH: int
     FEATURES: dict[str, dict]              -- kind: "toggle" | "trigger" | "dropdown"

@@ -126,8 +126,7 @@ def _dispatch_gain(state: CameraState, command: str) -> tuple[str, bool] | None:
     gain_min = getattr(module, "GAIN_MIN_DB", None) if module else None
     gain_max = getattr(module, "GAIN_MAX_DB", None) if module else None
     if gain_min is None or gain_max is None:
-        # Kein Gain-Katalogeintrag fuer dieses Modell (z. B. AK-UB300,
-        # strukturell inkompatibles OGS-Bereichsschema) -- wie eine echte
+        # Kein Gain-Katalogeintrag fuer dieses Modell -- wie eine echte
         # Kamera ohne dieses Kommando.
         return f"ER1:{command}", False
 
