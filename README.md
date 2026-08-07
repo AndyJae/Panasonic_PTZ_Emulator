@@ -34,9 +34,11 @@ two above.
   successful set command automatically pushes a notification frame to every
   registered listener, just like a real camera reports changes made from its
   own web UI or another controller.
-- 16 camera models (see `emulator/models/`): AW-UE160, AW-UE150A (+ AW-UE150 alias), AW-UE100,
+- 17 camera models (see `emulator/models/`): AW-UE160, AW-UE150A (+ AW-UE150 alias), AW-UE100,
   AW-UE80, AW-UE70, AW-UE50, AW-UE40, AW-UE30, AW-HE145 (+ AW-UE145 alias), AW-HE130, AW-HE120,
-  AW-HE60, AW-HE50, AW-HE42, AW-HE40, AW-HR140.
+  AW-HE60, AW-HE50, AW-HE42, AW-HE40, AW-HR140, AK-UB300. 16 of these are selectable in the
+  dropdown — AK-UB300 stays registered and testable (`resolve_model("AK-UB300")`) but is
+  intentionally hidden from the UI for now (product decision, not a technical gap).
 
 ## Running it
 

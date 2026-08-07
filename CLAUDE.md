@@ -33,7 +33,8 @@ Ziel dieses Repos: **ein** Emulator-Tool, das:
 
 **Aktueller Stand (2026-07-27):** die Zusammenführung ist inzwischen
 weitgehend umgesetzt, nicht mehr nur geplant — `emulator/` enthält einen
-eigenständigen Dispatch (`dispatch.py`), 16 Modellkataloge
+eigenständigen Dispatch (`dispatch.py`), 17 Modellkataloge (16 davon im
+Dropdown waehlbar, AK-UB300 registriert aber bewusst ausgeblendet)
 (`emulator/models/*.py`), Zustandsverwaltung (`state.py`),
 Update-Notification-Encoding/-Push (`notify.py`) sowie Control-UI + CGI-Server
 (`server.py`, Einstiegspunkt `main.py`, Tray-Icon `tray.py`) — TODO.md-Schritte

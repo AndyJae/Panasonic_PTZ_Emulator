@@ -57,6 +57,13 @@ FEATURES: dict[str, dict] = {
         ("Gamma is Cinema 2", "OSJ:D7:03"),
         ("Gamma is Still Like", "OSJ:D7:04"),
     ]},
+    "adaptive_matrix": {"kind": "toggle", "on": "OSJ:4F:1", "off": "OSJ:4F:0", "query": "QSJ:4F", "query_on_value": "1"},
+    "matrix_type": {"kind": "dropdown", "query": "QSE:31", "options": [
+        ("Matrix Type is Normal", "OSE:31:0"),
+        ("Matrix Type is EBU", "OSE:31:1"),
+        ("Matrix Type is NTSC", "OSE:31:2"),
+        ("Matrix Type is User", "OSE:31:3"),
+    ]},
 }
 
 FEATURE_LABELS: dict[str, str] = {
@@ -71,4 +78,6 @@ FEATURE_LABELS: dict[str, str] = {
     "aww_white": "AWW (White)",
     "color_temp": "White Balance Source",
     "gamma": "Gamma",
+    "adaptive_matrix": "Adaptive Matrix",
+    "matrix_type": "Matrix Type",
 }

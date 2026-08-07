@@ -3,9 +3,9 @@
 from emulator.models import get_registry
 
 
-def test_all_16_models_load_without_error():
+def test_all_17_models_load_without_error():
     ids = get_registry().registered_camera_ids()
-    assert len(ids) == 16
+    assert len(ids) == 17
 
 
 def test_he145_resolves_and_ue145_is_alias():
@@ -38,9 +38,15 @@ def test_unknown_model_resolves_to_none():
     assert get_registry().resolve(None) is None
 
 
-def test_two_distinct_pedestal_families():
+def test_ak_ub300_has_no_gain_but_has_pedestal():
+    module = get_registry().resolve("AK-UB300")
+    assert getattr(module, "GAIN_MIN_DB", None) is None
+    assert module.PEDESTAL_COMMAND == "OSG:4A"
+
+
+def test_three_distinct_pedestal_families():
     families = {cmd for cmd, _query in get_registry().all_pedestal_families()}
-    assert families == {"OSJ:0F", "OTP"}
+    assert families == {"OSJ:0F", "OTP", "OSG:4A"}
 
 
 def test_all_feature_commands_nonempty_and_includes_known_entries():

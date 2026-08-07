@@ -40,7 +40,16 @@ _MODEL_ORDER = [
     "AW-HE145", "AW-HE130", "AW-HE120", "AW-HE60", "AW-HE50", "AW-HE42", "AW-HE40",
     "AW-HR140",
 ]
-_registered_ids = get_registry().registered_camera_ids()
+# AK-UB300 bleibt registriert (emulator/models/ak_ub300.py, fuer spaetere
+# Wiederverwendung -- z. B. per resolve_model("AK-UB300") aus einem Skript),
+# ist aber bewusst nicht im Dropdown waehlbar. Kein technischer Grund, siehe
+# emulator/models/ak_ub300.py; reiner Produktentscheid.
+_HIDDEN_FROM_DROPDOWN = {"AK-UB300"}
+
+_registered_ids = [
+    cid for cid in get_registry().registered_camera_ids()
+    if cid not in _HIDDEN_FROM_DROPDOWN
+]
 MODEL_IDS = [cid for cid in _MODEL_ORDER if cid in _registered_ids] + [
     cid for cid in _registered_ids if cid not in _MODEL_ORDER
 ]
