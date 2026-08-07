@@ -10,6 +10,14 @@ Widerspruch zwischen den beiden Referenzquellen: die Spec-PDFs direkt prüfen, n
 beiden Quellen bevorzugen, nur weil sie zuerst gelesen wurde. Unklarheiten explizit benennen und
 nachfragen statt zu raten — gilt auch für Architektur-/Scope-Fragen, nicht nur Gerätedetails.
 
+## Non-negotiable: keine großen Codeumbauten ohne Aufforderung
+
+Kleinstmögliche, gezielte Änderung statt Umbau — immer. Keine großen Restrukturierungen,
+Rewrites oder umfassenden Refactorings ohne explizite Aufforderung des Nutzers; wenn ein
+größerer Umbau wirklich sinnvoll erscheint, das benennen und vorher fragen, nicht einfach
+umsetzen. Referenzmaterial unter `reference/` (lokal, nicht mehr Teil des Repos) nicht "nebenbei"
+verbessern oder umformatieren.
+
 ## Vorhaben
 
 Ein eigenständiges Panasonic-PTZ-Kamera-Emulator-Tool, das von zwei unabhängigen Apps als
@@ -57,14 +65,7 @@ unterschiedlicher Betonung haben, ist hier die strengere Fassung übernommen.
 - Wenn etwas nicht verifiziert werden kann: sagen "nicht verifiziert" /
   "in der Spezifikation nicht definiert" statt "sollte funktionieren".
 
-### 2. Minimal-invasiv, chirurgisch
-
-- Kleinstmögliche gezielte Änderung statt Umbau.
-- Referenzmaterial unter `reference/` nicht "nebenbei" verbessern oder
-  umformatieren — es ist eine Momentaufnahme, keine lebende Codebasis.
-- Bestehenden Stil im entstehenden Emulator-Code nicht ohne Auftrag ändern.
-
-### 3. Scope strikt einhalten
+### 2. Scope strikt einhalten
 
 - Dieses Repo baut ein Emulator-Tool — keine Reset-Sequenz-Logik, keine
   MIDI-Mapping-Logik, keine sonstigen App-spezifischen Features aus einer
@@ -73,13 +74,13 @@ unterschiedlicher Betonung haben, ist hier die strengere Fassung übernommen.
   auf dieses Tool umzustellen) gehören nicht in dieses Repo, siehe
   `TODO.md` Abschnitt 6.
 
-### 4. Tests zuerst und realitätsnah
+### 3. Tests zuerst und realitätsnah
 
 - Keine Test-only-Methoden im Emulator-Code.
 - Verifikation gegen echtes Verhalten (beide Apps, echte HTTP-Requests),
   nicht nur isolierte Annahmen.
 
-### 5. Abschlussregel
+### 4. Abschlussregel
 
 Vor jeder Aussage "fertig"/"gelöst": durch Test, Log oder nachvollziehbare
 Datei-/PDF-Evidenz belegen. Sonst: "noch unbestätigt".
