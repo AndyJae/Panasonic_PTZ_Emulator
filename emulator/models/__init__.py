@@ -12,6 +12,7 @@ Jedes Modell-Modul definiert:
     GAIN_MIN_DB / GAIN_MAX_DB / GAIN_STEP_DB: int   (optional)
     PEDESTAL_COMMAND / PEDESTAL_QUERY_COMMAND: str  (optional)
     PEDESTAL_MIN / PEDESTAL_MAX / PEDESTAL_CENTER_DATA / PEDESTAL_SCALE / PEDESTAL_DATA_WIDTH: int
+    OSD_MIX_OUTPUTS: list[tuple[str, int]] (optional) -- OSE:7B-Ausgaenge (Label, Bit)
     FEATURES: dict[str, dict]              -- kind: "toggle" | "trigger" | "dropdown"
     FEATURE_LABELS: dict[str, str]
 """

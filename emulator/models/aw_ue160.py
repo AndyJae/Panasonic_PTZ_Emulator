@@ -23,6 +23,16 @@ Auslesen ist in keiner lokalen PDF dokumentiert (siehe ptz_control-Quelle).
 CAMERA_ID = "AW-UE160"
 DISPLAY_NAME = "Panasonic AW-UE160"
 
+# OSD Mix (OSE:7B/QSE:7B, Bitmaske) -- simulierte Ausgaenge (Label, Bit).
+# Quelle: AW-UE160_InterfaceSpecification_E.pdf; bit6 (3G SDI2/PM) bewusst weggelassen, Kamera hat keinen zweiten 3G-Ausgang (Nutzer-bestaetigt).
+OSD_MIX_OUTPUTS = [
+    ("3G SDI", 0x01),
+    ("HDMI", 0x02),
+    ("IP/NDI|HX", 0x10),
+    ("12G SDI", 0x20),
+    ("NDI", 0x80),
+]
+
 GAIN_MIN_DB = -6
 GAIN_MAX_DB = 12
 GAIN_STEP_DB = 1

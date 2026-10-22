@@ -11,6 +11,15 @@ CAMERA_ID = "AW-HE130"
 CAMERA_ID_ALIASES = ["AW-HE135", "AW-HE130W", "AW-HE130K"]
 DISPLAY_NAME = "Panasonic AW-HE130"
 
+# OSD Mix (OSE:7B/QSE:7B, Bitmaske) -- simulierte Ausgaenge (Label, Bit).
+# Quelle: HDIntegratedCamera_InterfaceSpecifications-E.pdf 3.2.22.
+OSD_MIX_OUTPUTS = [
+    ("SDI", 0x01),
+    ("HDMI", 0x02),
+    ("Video", 0x08),
+    ("IP", 0x10),
+]
+
 GAIN_MIN_DB = 0
 GAIN_MAX_DB = 36
 GAIN_STEP_DB = 1

@@ -167,3 +167,31 @@ def test_explicit_exempt_addresses_do_not_push():
     s.push_notification = lambda cmd: pushed.append(cmd)
     dispatch.handle_command(s, "OSD:48:80")
     assert pushed == []
+
+
+def test_osd_mix_default_query_and_roundtrip():
+    s = _state("AW-UE160")
+    assert dispatch.handle_command(s, "QSE:7B") == "OSE:7B:00"
+    assert dispatch.handle_command(s, "OSE:7B:21") == "OSE:7B:21"
+    assert dispatch.handle_command(s, "QSE:7B") == "OSE:7B:21"
+
+
+def test_osd_mix_set_pushes_notification():
+    s = _state("AW-UE160")
+    pushed = []
+    s.push_notification = pushed.append
+    dispatch.handle_command(s, "OSE:7B:03")
+    dispatch.handle_command(s, "QSE:7B")
+    assert pushed == ["OSE:7B:03"]
+
+
+def test_osd_mix_unsupported_model_returns_er1():
+    s = _state("AW-HE40")  # kein OSE:7B laut Spec
+    assert dispatch.handle_command(s, "QSE:7B") == "ER1:QSE:7B"
+    assert dispatch.handle_command(s, "OSE:7B:01") == "ER1:OSE:7B:01"
+
+
+def test_osd_mix_malformed_value_returns_er1():
+    s = _state("AW-UE80")
+    assert dispatch.handle_command(s, "OSE:7B:1") == "ER1:OSE:7B:1"
+    assert dispatch.handle_command(s, "OSE:7B:ZZ") == "ER1:OSE:7B:ZZ"

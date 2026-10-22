@@ -19,6 +19,13 @@ CAMERA_ID = "AK-UB300"
 CAMERA_ID_ALIASES = ["AK-UB300GJ", "AK-UB300EJ"]
 DISPLAY_NAME = "Panasonic AK-UB300"
 
+# OSD Mix (OSE:7B/QSE:7B, Bitmaske) -- simulierte Ausgaenge (Label, Bit).
+# Quelle: HDIntegratedCamera_InterfaceSpecifications-E.pdf 3.2.22, ab Firmware V7.20.
+OSD_MIX_OUTPUTS = [
+    ("SDI", 0x01),
+    ("IP", 0x10),
+]
+
 PEDESTAL_COMMAND = "OSG:4A"
 PEDESTAL_QUERY_COMMAND = "QSG:4A"
 PEDESTAL_MIN = -99

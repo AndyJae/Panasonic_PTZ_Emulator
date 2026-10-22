@@ -21,6 +21,14 @@ CAMERA_ID = "AW-HE145"
 CAMERA_ID_ALIASES = ["AW-UE145", "AW-UE150HE", "AW-UE150HE145"]
 DISPLAY_NAME = "Panasonic AW-HE145"
 
+# OSD Mix (OSE:7B/QSE:7B, Bitmaske) -- simulierte Ausgaenge (Label, Bit).
+# Quelle: AW-UE150HE145_InterfaceSpecification_E.pdf, HE145-Liste.
+OSD_MIX_OUTPUTS = [
+    ("3G SDI", 0x01),
+    ("HDMI", 0x02),
+    ("IP", 0x10),
+]
+
 GAIN_MIN_DB = -3
 GAIN_MAX_DB = 42
 GAIN_STEP_DB = 1

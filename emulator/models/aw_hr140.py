@@ -12,6 +12,13 @@ CAMERA_ID = "AW-HR140"
 CAMERA_ID_ALIASES = ["AW-HR140E", "AW-HR140N"]
 DISPLAY_NAME = "Panasonic AW-HR140"
 
+# OSD Mix (OSE:7B/QSE:7B, Bitmaske) -- simulierte Ausgaenge (Label, Bit).
+# Quelle: HDIntegratedCamera_InterfaceSpecifications-E.pdf 3.2.22.
+OSD_MIX_OUTPUTS = [
+    ("SDI", 0x01),
+    ("IP", 0x10),
+]
+
 GAIN_MIN_DB = 0
 GAIN_MAX_DB = 42
 GAIN_STEP_DB = 1

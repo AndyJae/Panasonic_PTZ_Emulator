@@ -20,6 +20,15 @@ erfundener Wert).
 CAMERA_ID = "AW-UE80"
 DISPLAY_NAME = "Panasonic AW-UE80"
 
+# OSD Mix (OSE:7B/QSE:7B, Bitmaske) -- simulierte Ausgaenge (Label, Bit).
+# Quelle: AW-UE80UE50UE40_InterfaceSpecification_E.pdf, UE80-Liste.
+OSD_MIX_OUTPUTS = [
+    ("3G SDI", 0x01),
+    ("HDMI", 0x02),
+    ("IP/NDI|HX", 0x10),
+    ("NDI", 0x80),
+]
+
 GAIN_MIN_DB = 0
 GAIN_MAX_DB = 42
 GAIN_STEP_DB = 1

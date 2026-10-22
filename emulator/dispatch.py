@@ -14,6 +14,8 @@ Reihenfolge pro Kommando (siehe Plan):
   5. OGU/QGU (Gain, modellabhaengige Range -> ER3, kein Gain-Katalog -> ER1)
   6. Modell-eigenes PEDESTAL_COMMAND (gleiches Prinzip) + Cross-Modell-Gate
      fuer andere Pedestal-Kommandofamilien
+  6b. OSD Mix (OSE:7B/QSE:7B, Bitmaske) fuer Modelle mit OSD_MIX_OUTPUTS,
+     ER1 fuer Modelle ohne
   7. FEATURES-Katalog des aktiven Modells (toggle/trigger/dropdown)
   8. Cross-Modell-Gate: Kommando ist FEATURES-Kommando/-Query eines ANDEREN
      Modells -> ER1 (bildet echte Modellunterschiede ab, z. B. HE50 ohne
@@ -85,6 +87,10 @@ def _dispatch(state: CameraState, command: str) -> tuple[str, bool]:
     pedestal_result = _dispatch_pedestal(state, command)
     if pedestal_result is not None:
         return pedestal_result
+
+    osd_mix_result = _dispatch_osd_mix(state, command)
+    if osd_mix_result is not None:
+        return osd_mix_result
 
     features_result = _dispatch_features(state, command)
     if features_result is not None:
@@ -189,6 +195,35 @@ def _dispatch_pedestal(state: CameraState, command: str) -> tuple[str, bool] | N
             return f"ER1:{command}", False
 
     return None
+
+
+def _dispatch_osd_mix(state: CameraState, command: str) -> tuple[str, bool] | None:
+    """OSD Mix: OSE:7B:[Data]/QSE:7B, [Data] = 2-stellige Hex-Bitmaske (ein
+    Bit pro Videoausgang, Spec-Beispiele "OSE:7B:00"/"61"/"73"/"B3"). Passt
+    nicht in die FEATURES-Arten (toggle/trigger/dropdown), weil ein Wert
+    mehrere Ausgaenge gleichzeitig traegt -- deshalb eigenes Modell-Attribut
+    OSD_MIX_OUTPUTS statt FEATURES-Eintrag. Modelle ohne OSD_MIX_OUTPUTS (laut
+    Spec kein OSE:7B, z. B. HE40/HE50) -> ER1, wie das Cross-Modell-Gate.
+    Werte mit Bits ausserhalb OSD_MIX_OUTPUTS werden unveraendert gespeichert:
+    wie eine echte Kamera darauf reagiert, steht in keiner Spec."""
+    if command != "QSE:7B" and not command.startswith("OSE:7B:"):
+        return None
+
+    module = state.module
+    if module is None or not getattr(module, "OSD_MIX_OUTPUTS", None):
+        return f"ER1:{command}", False
+
+    if command == "QSE:7B":
+        return f"OSE:7B:{state.osd_mix_data:02X}", False
+
+    hex_part = command[len("OSE:7B:"):]
+    if len(hex_part) != 2:
+        return f"ER1:{command}", False
+    try:
+        state.osd_mix_data = int(hex_part, 16)
+    except ValueError:
+        return f"ER1:{command}", False
+    return command, True
 
 
 def _dispatch_features(state: CameraState, command: str) -> tuple[str, bool] | None:

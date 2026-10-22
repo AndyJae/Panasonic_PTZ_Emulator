@@ -101,6 +101,30 @@ def test_force_er2_lever_via_control_ui():
     assert live_again.text == "OID:AW-UE160"
 
 
+def test_osd_toggle_via_control_ui():
+    cam_port = 18084
+    control_client.post("/start", data={"model_id": "AW-UE160", "port": cam_port}, follow_redirects=False)
+    assert "OSD-Ausg&auml;nge" in control_client.get("/").text
+
+    control_client.post("/osd-toggle", data={"bit": 0x20}, follow_redirects=False)  # 12G SDI
+    control_client.post("/osd-toggle", data={"bit": 0}, follow_redirects=False)     # Menue an
+    q = lambda cmd: httpx.get(f"http://127.0.0.1:{cam_port}/cgi-bin/aw_cam", params={"cmd": cmd}).text
+    assert q("QSE:7B") == "OSE:7B:20"
+    assert q("QUS") == "OUS:1"
+
+    osd = control_client.get("/state.json").json()["osd"]
+    assert osd["mask"] == "20" and osd["menu"] == "an"
+
+    control_client.post("/osd-toggle", data={"bit": 0x20}, follow_redirects=False)
+    assert q("QSE:7B") == "OSE:7B:00"
+
+
+def test_osd_section_absent_for_model_without_osd_mix():
+    control_client.post("/start", data={"model_id": "AW-HE40", "port": 18085}, follow_redirects=False)
+    assert "OSD-Ausg&auml;nge" not in control_client.get("/").text
+    assert control_client.get("/state.json").json()["osd"] is None
+
+
 def _real_discovery_request(source_mac: bytes, source_ip: bytes) -> bytes:
     """Bytegleicher Nachbau eines echten Discovery-Requests (siehe
     smart_reset_work/smart_reset/discovery.py::_build_discovery_request) --

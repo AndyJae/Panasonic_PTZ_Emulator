@@ -32,6 +32,11 @@ class CameraState:
         self.gain_data: int = _GAIN_ZERO_DB_DATA
         self.pedestal_data: int = 0
 
+        # OSD Mix (OSE:7B) -- Bitmaske, welche Ausgaenge das OSD tragen (siehe
+        # dispatch.py::_dispatch_osd_mix). Startwert 00 (alle aus) ist nicht
+        # aus einer Spec belegt, nur ein neutraler Default.
+        self.osd_mix_data: int = 0x00
+
         # Iris/ND/Bars -- modellunabhaengig (siehe dispatch.py-Docstring).
         self.iris_data: int = 0xAAA
         self.auto_iris: bool = False
@@ -58,6 +63,7 @@ class CameraState:
         self.feature_values.clear()
         self.gain_data = _GAIN_ZERO_DB_DATA
         self.pedestal_data = getattr(self.module, "PEDESTAL_CENTER_DATA", 0) if self.module else 0
+        self.osd_mix_data = 0x00
         self.iris_data = 0xAAA
         self.auto_iris = False
         self.nd_index = 0

@@ -24,9 +24,9 @@ Ein eigenständiges Panasonic-PTZ-Kamera-Emulator-Tool, das von zwei unabhängig
 externer Test-Prozess genutzt werden kann, ohne dass eine der beiden Apps zur Laufzeit von diesem
 Repo (oder umgekehrt) abhängt:
 
-- **`C:\GitHub\smart_reset_work`** (veröffentlicht als `smart-reset-browser`) —
+- **`C:\GitHub\AndyJae\smart_reset_work`** (veröffentlicht als `smart-reset-browser`) —
   Browser-basiertes Reset-/Steuerungs-/NDI-Tool.
-- **`C:\GitHub\X-Touch_PTZ_Control_Work`** (veröffentlicht als
+- **`C:\GitHub\AndyJae\X-Touch_PTZ_Control_Work`** (veröffentlicht als
   `X-Touch_PTZ_Control`) — MIDI-Shading-Controller (Behringer X-Touch
   Extender) für PTZ-Kameras.
 

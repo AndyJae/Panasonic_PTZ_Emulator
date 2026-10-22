@@ -120,3 +120,38 @@ excluded — known identity mismatch, see `smart_reset_work`'s own CHANGELOG.md)
 real reset sequence against this emulator with zero errors, up from 4/16 before this change. This
 also surfaced two genuine bugs on the `smart_reset_work` side (AK-UB300 sending `OGU`/`OSE:31`
 commands it doesn't actually support) — fixed there, not here; see that repo's own CHANGELOG.md.
+
+---
+
+## OSD Mix (`OSE:7B`) added (2026-10-22)
+
+New `smart_reset_work` feature "OSD Output" (switch the OSD menu on/off per video output) uses
+`OSE:7B:[Data]`/`QSE:7B`, `[Data]` = 2-digit hex bitmask, one bit per output (spec examples
+`OSE:7B:00`/`61`/`73`/`B3`). Doesn't fit the `FEATURES` kinds (one value carries several outputs),
+and several models share one `FEATURES` dict via re-export while having different outputs
+(UE30/40/50 ← UE80, HE145 ← UE150A) — so it's a separate per-model attribute `OSD_MIX_OUTPUTS` (list of `(label, bit)`)
+(set explicitly in each model file, not re-exported) plus `_dispatch_osd_mix()` in `dispatch.py`
+(step 6b, before `FEATURES`).
+
+- Models with `OSD_MIX_OUTPUTS`: store/echo the mask, `QSE:7B` -> `OSE:7B:XX`, set triggers the
+  usual update-notification push. Models without (HE40/42/50/60, UE70 — no `OSE:7B` in their
+  spec) -> `ER1`, same as the cross-model gate.
+- Masks per spec: UE150A/UE150 `73` (3G SDI/HDMI/IP/12G SDI/MONI — UE150 list, same camera per
+  the user), HE145 `13`, UE160 `B3` (bit6 "3G SDI2/PM" left out — camera has no second 3G output,
+  user-confirmed), UE100 `B3`, UE80 `93`, UE50 `13`, UE40/UE30 `12`, HE120 `0F`, HE130 `1B`,
+  HR140 `11`, AK-UB300 `11` (firmware V7.20+). The spec examples `73`/`B3` equal those full masks.
+- **Not verified / not simulated:** the start value (`00`) is a neutral default, not from a spec;
+  values with bits outside `OSD_MIX_OUTPUTS` are stored as-is, since no spec says how a real camera
+  reacts to them.
+
+- **Control UI:** section "OSD-Ausgänge" (only for models with `OSD_MIX_OUTPUTS`) shows the menu
+  state (`DUS`, read from the `QUS` feature value), each output's bit and whether it's actually
+  visible (bit set **and** menu on), plus the raw mask. Each row has an "umschalten" button
+  (`POST /osd-toggle`, `bit=0` = menu `DUS`, else flip that bit via `OSE:7B`) — runs through the
+  normal dispatch like `/simulate-change`, so it pushes update notifications to connected apps.
+  Values live-update via `/state.json` (new `osd` key, `null` for models without OSD Mix).
+
+Tests: 4 new in `tests/test_dispatch.py`, 2 in `tests/test_emulator_http.py` (control-UI toggle +
+section absent on AW-HE40), suite 55/55 green. Live-verified against
+`smart_reset_work`'s new OSD Output feature over real HTTP + real notification push (AW-UE160,
+AW-UE40, AW-HE40).

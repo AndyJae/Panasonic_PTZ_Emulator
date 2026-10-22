@@ -21,3 +21,10 @@ from emulator.models.aw_ue80 import (  # noqa: F401
 
 CAMERA_ID = "AW-UE30"
 DISPLAY_NAME = "Panasonic AW-UE30"
+
+# OSD Mix (OSE:7B/QSE:7B, Bitmaske) -- simulierte Ausgaenge (Label, Bit).
+# Quelle: AW-UE80UE50UE40_InterfaceSpecification_E.pdf, UE30-Liste.
+OSD_MIX_OUTPUTS = [
+    ("HDMI", 0x02),
+    ("IP/NDI|HX", 0x10),
+]

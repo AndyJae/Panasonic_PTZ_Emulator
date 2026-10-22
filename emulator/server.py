@@ -232,7 +232,22 @@ _RUNNING_BLOCK = """<p>Status: <b>l&auml;uft</b> &mdash; Modell <b>{model_id}</b
 </form>
 <form method="post" action="/force-er2">
 <button type="submit">N&auml;chster Befehl liefert ER2 (busy){er2_marker}</button>
-</form>"""
+</form>
+{osd_block}"""
+
+_OSD_BLOCK = """<h2>OSD-Ausg&auml;nge (OSD Mix, OSE:7B)</h2>
+<p>Schalten l&auml;uft wie eine externe &Auml;nderung &uuml;ber den normalen Dispatch (inkl. Notification-Push).
+Sichtbar ist das OSD auf einem Ausgang nur, wenn sein Bit gesetzt <i>und</i> das Men&uuml; an ist.</p>
+<table>
+<tr><th>Ausgang</th><th>Zustand</th><th></th></tr>
+<tr><td>Men&uuml; (DUS)</td><td id="osd-menu-value">{menu}</td>
+<td><form method="post" action="/osd-toggle" style="margin:0"><input type="hidden" name="bit" value="0"><button type="submit">umschalten</button></form></td></tr>
+{rows}
+<tr><td>Bitmaske</td><td id="osd-mask-value">{mask}</td><td></td></tr>
+</table>"""
+
+_OSD_ROW = """<tr><td>{label}</td><td id="osd-out-{bit}">{value}</td>
+<td><form method="post" action="/osd-toggle" style="margin:0"><input type="hidden" name="bit" value="{bit}"><button type="submit">umschalten</button></form></td></tr>"""
 
 _LOG_STATE_BLOCK = """<h2>Kamera-Zustand</h2>
 <table>
@@ -273,6 +288,11 @@ async function pollState() {
   setText("nd-value", data.nd);
   setText("bars-value", data.bars);
   setText("listeners-value", data.listeners);
+  if (data.osd) {
+    setText("osd-menu-value", data.osd.menu);
+    setText("osd-mask-value", data.osd.mask);
+    data.osd.outputs.forEach((o) => setText("osd-out-" + o.bit, o.value));
+  }
 
   logRows.innerHTML = "";
   if (data.log.length === 0) {
@@ -315,8 +335,28 @@ def _state_snapshot() -> dict:
         ", ".join(f"{host}:{port}" for port, host in state.listeners.items())
         or "keine registriert"
     )
+    osd = None
+    outputs = getattr(module, "OSD_MIX_OUTPUTS", None) if module is not None else None
+    if outputs:
+        menu_on = state.feature_values.get("QUS", "0") == "1"
+        osd = {
+            "menu": "an" if menu_on else "aus",
+            "mask": f"{state.osd_mix_data:02X}",
+            "outputs": [
+                {
+                    "label": label,
+                    "bit": bit,
+                    "value": (
+                        ("an, sichtbar" if menu_on else "an, Menü aus")
+                        if state.osd_mix_data & bit else "aus"
+                    ),
+                }
+                for label, bit in outputs
+            ],
+        }
     return {
         "model_id": state.model_id,
+        "osd": osd,
         "iris": f"{state.iris_data:03X}",
         "auto_iris": state.auto_iris,
         "gain": gain_text,
@@ -335,10 +375,16 @@ def _render() -> str:
         discovery_error = (
             f'<p class="warn">{manager.discovery_error}</p>' if manager.discovery_error else ""
         )
+        osd_block = ""
+        if snap["osd"]:
+            osd_block = _OSD_BLOCK.format(
+                menu=snap["osd"]["menu"], mask=snap["osd"]["mask"],
+                rows="".join(_OSD_ROW.format(**o) for o in snap["osd"]["outputs"]),
+            )
         status_block = _RUNNING_BLOCK.format(
             model_id=snap["model_id"], host=manager.host, port=manager.port,
             listeners=snap["listeners"], er2_marker=er2_marker,
-            discovery_error=discovery_error,
+            discovery_error=discovery_error, osd_block=osd_block,
         )
 
         log_rows = "".join(
@@ -409,6 +455,20 @@ async def simulate_change(command: str = Form(...)) -> RedirectResponse:
     command = command.strip()
     if command and manager.running:
         dispatch.handle_command(state, command)
+    return RedirectResponse("/", status_code=303)
+
+
+@control_app.post("/osd-toggle")
+async def osd_toggle(bit: int = Form(...)) -> RedirectResponse:
+    """OSD-Ausgang (bit > 0, OSE:7B) bzw. OSD-Menue (bit == 0, DUS) als
+    externe Aenderung umschalten -- derselbe Dispatch-Pfad wie
+    /simulate-change, also inkl. Notification-Push."""
+    if manager.running:
+        if bit == 0:
+            menu_on = state.feature_values.get("QUS", "0") == "1"
+            dispatch.handle_command(state, f"DUS:{0 if menu_on else 1}")
+        else:
+            dispatch.handle_command(state, f"OSE:7B:{state.osd_mix_data ^ bit:02X}")
     return RedirectResponse("/", status_code=303)
 
 
